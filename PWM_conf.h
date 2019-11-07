@@ -1,19 +1,27 @@
-#ifndef TIMER_CONF_H_
-#define TIMER_CONF_H_
+/*
+ * PWM_conf.h
+ *
+ *  Created on: Nov 7, 2019
+ *      Author: abdelqader
+ */
+
+#ifndef PWM_CONF_H_
+#define PWM_CONF_H_
+
 
 #include"STD_Types.h"
 
 typedef enum { PWM_0, NUM_PWM_STATES} EnumPWMState_t;
 
 
-#define TIMER_0         0 
+#define TIMER_0         0
 #define TIMER_1         1
 #define TIMER_2         2
 
-#define Normal                  0
-#define CTC                     1   
+
 #define Fast_PWM                2
 #define Phase_Correct           3
+
 #define Fast_PWM_ICR            4
 #define Fast_PWM_10b            5
 #define Phase_Correct_ICR       6
@@ -125,8 +133,7 @@ typedef struct {
     uint16 COMP_REG;
     uint16 TOP_VALUE;
     uint8 PRESCALER;
-    uint8 INTERRUPT;
-    uint8 STATE; 
+    uint8 STATE;
 
 } PWM_Conf_t;
 
@@ -134,5 +141,4 @@ typedef struct {
 extern PWM_Conf_t PWM_Array[NUM_PWM_STATES];
 
 
-
-#endif /* TIMER_CONF_H_ */
+#endif /* PWM_CONF_H_ */

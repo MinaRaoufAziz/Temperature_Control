@@ -1,120 +1,33 @@
-#include"timer.h"
+/*
+ * PWM.c
+ *
+ *  Created on: Nov 7, 2019
+ *      Author: abdelqader
+ */
 
-void (*Ptr_Timer0_OV) (void) = ((void *) 0);
-void (*Ptr_Timer0_CM) (void) = ((void *) 0);
+#include"PWM.h"
 
-void (*Ptr_Timer2_OV) (void) = ((void *) 0);
-void (*Ptr_Timer2_CM) (void) = ((void *) 0);
-
-void (*Ptr_Timer1_OV) (void) = ((void *) 0);
-void (*Ptr_Timer1_CM) (void) = ((void *) 0);
-
-
-STD_Fun_t TIMER_Init(uint8 TimerSpecs)
+EnumPWMStatus_t PWM_init (uint8 TimerSpecs)
 {
-    STD_Fun_t StateVar = OK;
-    // check if the timer exists in Array or not 
+	EnumPWMStatus_t StateVar = PWM_OK;
+    // check if the timer exists in Array or not
     if (TimerSpecs < NUM_PWM_STATES)
     {
-        // at which timer user wants to operate 
+        // at which timer user wants to operate
 
 		/************************************************************************/
-		  /*                            Timer 0								*/			           
+		  /*                            Timer 0								*/
 		/************************************************************************/
         if (PWM_Array[TimerSpecs].TIMER == TIMER_0)
         {
-			
+
             switch(PWM_Array[TimerSpecs].MODE)
             {
-			/************************************************************************/
-			                /*      Normal mode           */
-			/************************************************************************/
-                case Normal:
-                TCCR0 &= ~(1u<<WGM00);
-                TCCR0 &= ~(1u<<WGM01);
-                // check the interrupt
-                switch (PWM_Array[TimerSpecs].INTERRUPT){
-                    case Enable:
-                        // enable interrupt overflow for timer 0 normal mode
-                        TIMSK |= (1u<<TOIE0);
-                        SREG |= (1u << 7);
-                    break;
-                    case Disable:
-                        TIMSK &= ~(1u<<TOIE0);
-                    break;
-                    default:
-                    StateVar = NOK;
-                    break;
-                }
-                // compare reg value 
-                OCR0 = PWM_Array[TimerSpecs].COMP_REG;
-                // check the pin 
-                switch(PWM_Array[TimerSpecs].COMP_PIN){
-                    case Set:
-                    TCCR0 |= (1u << COM00);
-                    TCCR0 |= (1u << COM01);
-                    DDRB |= (1u << OC0);
-                    break;
-                    case Clear:
-                    TCCR0 &= ~(1u << COM00);
-                    TCCR0 |= (1u << COM01);        
-                    break;
-                    case Toggle:
-                    TCCR0 |= (1u << COM00);
-                    TCCR0 &= ~(1u << COM01);
-                    DDRB |= (1u << OC0);  
-                    break;
-                    default:
-                    TCCR0 &= ~(1u << COM00);
-                    TCCR0 &= ~(1u << COM01);  
-                    break;
-                } 
-                break;
-				/************************************************************************/
-				                /*            CTC mode	        */
-				/************************************************************************/
-                case CTC:
-                TCCR0 &= ~(1u<<WGM00);
-                TCCR0 |= (1u<<WGM01);
-                switch (PWM_Array[TimerSpecs].INTERRUPT){
-                    case Enable:
-                        // enable interrupt overflow for timer 0 normal mode
-                        TIMSK |= (1u<<OCIE0);
-                        SREG |= (1u << 7);
-                    break;
-                    case Disable:
-                        TIMSK &= ~(1u<<OCIE0);
-                    break;
-                    default:
-                    StateVar = NOK;
-                    break;
-                }
-				OCR0 = PWM_Array[TimerSpecs].COMP_REG;
-                switch(PWM_Array[TimerSpecs].COMP_PIN){
-                    case Set:
-                    TCCR0 |= (1u << COM00);
-                    TCCR0 |= (1u << COM01);
-                    DDRB |= (1u << OC0);
-                    break;
-                    case Clear:
-                    TCCR0 &= ~(1u << COM00);
-                    TCCR0 |= (1u << COM01);        
-                    break;
-                    case Toggle:
-                    TCCR0 |= (1u << COM00);
-                    TCCR0 &= ~(1u << COM01);
-                    DDRB |= (1u << OC0);  
-                    break;
-                    default:
-                    TCCR0 &= ~(1u << COM00);
-                    TCCR0 &= ~(1u << COM01);  
-                    break;
-                }
-                break;
 				/************************************************************************/
 				                /*            Fast PWM	        */
 				/************************************************************************/
                 case Fast_PWM:
+
                     TCCR0 = (1<<WGM01) | (1<<WGM00);
                     switch(PWM_Array[TimerSpecs].COMP_PIN)
                     {
@@ -132,7 +45,7 @@ STD_Fun_t TIMER_Init(uint8 TimerSpecs)
 							DDRB |= (1<<OC0);
                             break;
 						default:
-							StateVar = NOK;
+							StateVar = PWM_NOK;
 							break;
                     }
 					OCR0 = PWM_Array[TimerSpecs].COMP_REG;
@@ -141,6 +54,7 @@ STD_Fun_t TIMER_Init(uint8 TimerSpecs)
 				                /*           Phase correct	        */
 				/************************************************************************/
                 case Phase_Correct:
+
                     TCCR0 = (1<<WGM00);
                     switch(PWM_Array[TimerSpecs].COMP_PIN)
                     {
@@ -158,14 +72,14 @@ STD_Fun_t TIMER_Init(uint8 TimerSpecs)
                             TCCR0 |= (1<<COM01) | (1<<COM00);
                             break;
 						default:
-							StateVar = NOK;
+							StateVar = PWM_NOK;
 							break;
                     }
 					OCR0 = PWM_Array[TimerSpecs].COMP_REG;
 					break;
 
                 default:
-					StateVar = NOK;
+					StateVar = PWM_NOK;
                     break;
             }
 
@@ -201,206 +115,22 @@ STD_Fun_t TIMER_Init(uint8 TimerSpecs)
                 PWM_Array[TimerSpecs].STATE = Running;
                 break;
             default:
-				StateVar = NOK;
+				StateVar = PWM_NOK;
                 break;
             }
+
         }
-	
+
 		/************************************************************************/
 		    /* 			        	TIMER 1								   */
 		/************************************************************************/
         else if (PWM_Array[TimerSpecs].TIMER == TIMER_1)
         {
-            if (PWM_Array[TimerSpecs].MODE == Normal)
-            {
-				TCCR1A = (~(1<<WGM10)) &(~(1<<WGM11));
-				TCCR1B = (~(1<<WGM13)) &(~(1<<WGM12));
-				switch(PWM_Array[TimerSpecs].CHANNAL)
-				{
-					case Channel_A:
-						
-						OCR1AH = (uint8) (PWM_Array[TimerSpecs].COMP_REG >> 8);
-                        OCR1AL = (uint8) ((PWM_Array[TimerSpecs].COMP_REG) & 0x00FF);
-						switch(PWM_Array[TimerSpecs].COMP_PIN)
-						{
-							case Disconnect:
-								TCCR1A &= (~(1<<COM1A0)) & (~(1<<COM1A1));
-								break;
-							case Toggle:
-								TCCR1A &= (~(1<<COM1A0)) & (~(1<<COM1A1));
-								TCCR1A |= (1<<COM1A0);
-                                DDRD|= (1<<OC1A);
-								break;
-							case Clear:
-								TCCR1A &= (~(1<<COM1A0)) & (~(1<<COM1A1));
-								TCCR1A |= (1<<COM1A1);
-                                DDRD|= (1<<OC1A);
-								break;
-							case Set:
-								TCCR1A &= (~(1<<COM1A0)) & (~(1<<COM1A1));
-								TCCR1A |= (1<<COM1A0) | (1<<COM1A1);
-                                DDRD|= (1<<OC1A);
-								break;
-							default:
-								StateVar = NOK;
-								break;
-						}
-						break;
-						
-					case Channel_B:
-						
-						OCR1BH = (uint8) (PWM_Array[TimerSpecs].COMP_REG >> 8);
-                        OCR1BL = (uint8) ((PWM_Array[TimerSpecs].COMP_REG) & 0x00FF);
-					switch(PWM_Array[TimerSpecs].COMP_PIN)
-					{
-						case Disconnect:
-							TCCR1A &= (~(1<<COM1B0)) & (~(1<<COM1B1));
-							break;
-						case Toggle:
-							TCCR1A &= (~(1<<COM1B0)) & (~(1<<COM1B1));
-							TCCR1A |= (1<<COM1B0);
-                            DDRD|= (1<<OC1B);
-							break;
-						case Clear:
-							TCCR1A &= (~(1<<COM1B0)) & (~(1<<COM1B1));
-							TCCR1A |= (1<<COM1B1);
-                            DDRD|= (1<<OC1B);
-							break;
-						case Set:
-							TCCR1A &= (~(1<<COM1B0)) & (~(1<<COM1B1));
-							TCCR1A |= (1<<COM1B0) | (1<<COM1B1);
-                            DDRD|= (1<<OC1B);
-							break;
-						default:
-							StateVar = NOK;
-							break;
-					}
-					break;
-                    default:
-						StateVar = NOK;
-						break;					
-				}
-                switch(PWM_Array[TimerSpecs].INTERRUPT)
-                {
-                    case Enable:
-                        TIMSK |= (1<<TOIE1);
-                        SREG|= (1<<7);
-                        break;
-                    case Disable:
-                        TIMSK &= ~(1<<TOIE1);
-                        break;
-                    default:
-                        StateVar = NOK;
-                        break;
-                }
-            }
-			/************************************************************************/
-			/* CTC mode													            */
-			/************************************************************************/
-            else if (PWM_Array[TimerSpecs].MODE == CTC)
-            {
-				TCCR1A = (~(1<<WGM10)) &(~(1<<WGM11));
-				TCCR1B = (1<<WGM12);
 
-				switch(PWM_Array[TimerSpecs].CHANNAL)
-				{
-				//	Channel A
-					case Channel_A:
-						OCR1AH =  (PWM_Array[TimerSpecs].COMP_REG >> 8);
-						OCR1AL =  ((PWM_Array[TimerSpecs].COMP_REG) & 0x00FF);
-						switch(PWM_Array[TimerSpecs].COMP_PIN)
-						{
-							case Disconnect:
-							TCCR1A &= (~(1<<COM1A0)) & (~(1<<COM1A1));
-								break;
-							case Toggle:
-								TCCR1A &= (~(1<<COM1A0)) & (~(1<<COM1A1));
-								TCCR1A |= (1<<COM1A0);
-                                DDRD|= (1<<OC1A);
-								break;
-							case Clear:
-								TCCR1A &= (~(1<<COM1A0)) & (~(1<<COM1A1));
-								TCCR1A |= (1<<COM1A1);
-                                DDRD|= (1<<OC1A);
-								break;
-							case Set:
-								TCCR1A &= (~(1<<COM1A0)) & (~(1<<COM1A1));
-								TCCR1A |= (1<<COM1A0) | (1<<COM1A1);
-                                DDRD|= (1<<OC1A);
-								break;
-							default:
-								StateVar = NOK;
-								break;
-						}
-						switch(PWM_Array[TimerSpecs].INTERRUPT)
-						{
-							case Enable:
-								TIMSK|= (1<<OCIE1A);
-                                SREG|= (1<<7);
-								break;
-							case Disable:
-								TIMSK&=~(1<<OCIE1A);
-								break;
-							default:
-								StateVar = NOK;
-								break;
-						}
-
-						break;
-
-					// Channel B
-					case Channel_B:
-					OCR1AH =  (PWM_Array[TimerSpecs].COMP_REG >> 8);
-					OCR1AL =  ((PWM_Array[TimerSpecs].COMP_REG) & 0x00FF);
-					switch(PWM_Array[TimerSpecs].COMP_PIN)
-					{
-						case Disconnect:
-							TCCR1A &= (~(1<<COM1B0)) & (~(1<<COM1B1));
-							break;
-						case Toggle:
-							TCCR1A &= (~(1<<COM1B0)) & (~(1<<COM1B1));
-							TCCR1A |= (1<<COM1B0);
-                            DDRD|= (1<<OC1B);
-							break;
-						case Clear:
-							TCCR1A &= (~(1<<COM1B0)) & (~(1<<COM1B1));
-							TCCR1A |= (1<<COM1B1);
-                            DDRD|= (1<<OC1B);
-							break;
-						case Set:
-							TCCR1A &= (~(1<<COM1B0)) & (~(1<<COM1B1));
-							TCCR1A |= (1<<COM1B0) | (1<<COM1B1);
-                            DDRD|= (1<<OC1B);
-							break;
-						default:
-							StateVar = NOK;
-							break;
-					}
-					switch(PWM_Array[TimerSpecs].INTERRUPT)
-					{
-						case Enable:
-							TIMSK|= (1<<OCIE1B);
-                            SREG |= (1<<7);
-							break;
-						case Disable:
-							TIMSK&=~(1<<OCIE1B);
-							break;
-						default:
-							StateVar = NOK;
-							break;
-					}
-					
-					break;
-
-				default:
-					StateVar = NOK;
-					break;
-				}
-            }
 			/************************************************************************/
-			/* FAST_PWM using 10 bits                                               */
+			/*                   FAST_PWM using 10 bits                 s      */
 			/************************************************************************/
-            else if (PWM_Array[TimerSpecs].MODE == Fast_PWM_10b)
+            if (PWM_Array[TimerSpecs].MODE == Fast_PWM_10b)
             {
 				TCCR1A = (1<<WGM10) | (1<<WGM11);
 				TCCR1B &=~(1<<WGM13);
@@ -428,8 +158,8 @@ STD_Fun_t TIMER_Init(uint8 TimerSpecs)
                                 DDRD |= (1<<OC1A);
 								break;
 							default:
-								StateVar = NOK;
-								break;	
+								StateVar = PWM_NOK;
+								break;
 						}
 						break;
 
@@ -453,12 +183,12 @@ STD_Fun_t TIMER_Init(uint8 TimerSpecs)
                             DDRD |= (1<<OC1B);
 							break;
 						default:
-							StateVar = NOK;
+							StateVar = PWM_NOK;
 							break;
 					}
 					break;
                     default:
-                        StateVar = NOK;
+                        StateVar = PWM_NOK;
                         break;
 				}
             }
@@ -480,7 +210,8 @@ STD_Fun_t TIMER_Init(uint8 TimerSpecs)
                     OCR1AH = (uint8) (PWM_Array[TimerSpecs].COMP_REG >> 8);
                     OCR1AL = (uint8) (PWM_Array[TimerSpecs].COMP_REG);
 
-                    switch(PWM_Array[TimerSpecs].COMP_PIN){
+                    switch(PWM_Array[TimerSpecs].COMP_PIN)
+                    {
                         case Disconnect:
 						TCCR1A &= (~(1<<COM1A0)) & (~(1<<COM1A1));
                         break;
@@ -493,7 +224,7 @@ STD_Fun_t TIMER_Init(uint8 TimerSpecs)
                         TCCR1A |= (1u<<COM1A1);
                         break;
                         default:
-                        StateVar = NOK;
+                        StateVar = PWM_NOK;
                         break;
                     }
                     break;
@@ -515,12 +246,12 @@ STD_Fun_t TIMER_Init(uint8 TimerSpecs)
                         TCCR1A |= (1u<<COM1B1);
                         break;
                         default:
-                        StateVar = NOK;
+                        StateVar = PWM_NOK;
                         break;
                     	}
                     break;
                     default:
-                    StateVar = NOK;
+                    StateVar = PWM_NOK;
                     break;
                 }
             }
@@ -550,7 +281,7 @@ STD_Fun_t TIMER_Init(uint8 TimerSpecs)
                         TCCR1A |= (1u<<COM1A1);
                         break;
                         default:
-                        StateVar = NOK;
+                        StateVar = PWM_NOK;
                         break;
                     }
                     break;
@@ -570,18 +301,18 @@ STD_Fun_t TIMER_Init(uint8 TimerSpecs)
                         TCCR1A |= (1u<<COM1B1);
                         break;
                         default:
-                        StateVar = NOK;
+                        StateVar = PWM_NOK;
                         break;
                     }
                     break;
                     default:
-                    StateVar = NOK;
+                    StateVar = PWM_NOK;
                     break;
                 }
             }
 
 			/************************************************************************/
-			/* Phase correct with ICR as TOP value                                               */
+			/*           Phase correct with ICR as TOP value                   */
 			/************************************************************************/
 
             else if (PWM_Array[TimerSpecs].MODE == Phase_Correct_ICR)
@@ -609,7 +340,7 @@ STD_Fun_t TIMER_Init(uint8 TimerSpecs)
                         TCCR1A |= (1u<<COM1A1);
                         break;
                         default:
-                        StateVar = NOK;
+                        StateVar = PWM_NOK;
                         break;
                     }
                     break;
@@ -629,18 +360,18 @@ STD_Fun_t TIMER_Init(uint8 TimerSpecs)
                         TCCR1A |= (1u<<COM1B1);
                         break;
                         default:
-                        StateVar = NOK;
+                        StateVar = PWM_NOK;
                         break;
                     }
                     break;
                     default:
-                    StateVar = NOK;
+                    StateVar = PWM_NOK;
                     break;
                 }
             }
 
             /************************************************************************/
-			/* Phase and frequency correct with ICR as TOP value                                               */
+			/*        Phase and frequency correct with ICR as TOP value           */
 			/************************************************************************/
 
             else if (PWM_Array[TimerSpecs].MODE == Phase_Freq_Correct_ICR)
@@ -668,7 +399,7 @@ STD_Fun_t TIMER_Init(uint8 TimerSpecs)
                         TCCR1A |= (1u<<COM1A1);
                         break;
                         default:
-                        StateVar = NOK;
+                        StateVar = PWM_NOK;
                         break;
                     }
                     break;
@@ -690,12 +421,12 @@ STD_Fun_t TIMER_Init(uint8 TimerSpecs)
                         TCCR1A |= (1u<<COM1B1);
                         break;
                         default:
-                        StateVar = NOK;
+                        StateVar = PWM_NOK;
                         break;
                     }
                     break;
                     default:
-                    StateVar = NOK;
+                    StateVar = PWM_NOK;
                     break;
                 }
             }
@@ -710,7 +441,7 @@ STD_Fun_t TIMER_Init(uint8 TimerSpecs)
 				TCCR1B &= (~(1u <<CS12)) & (~(1u <<CS11)) & (~(1u <<CS10));
                 TCCR1B |= (1u << CS10);
                 PWM_Array[TimerSpecs].STATE = Running;
-                break;        
+                break;
             case CLK_8:
                 TCCR1B &= (~(1u <<CS12)) & (~(1u <<CS11)) & (~(1u <<CS10));
 				TCCR1B |= (1u << CS11);
@@ -720,7 +451,7 @@ STD_Fun_t TIMER_Init(uint8 TimerSpecs)
                 TCCR1B &= (~(1u <<CS12)) & (~(1u <<CS11)) & (~(1u <<CS10));
 				TCCR1B |=(1u << CS10) | (1u << CS11);
 				PWM_Array[TimerSpecs].STATE = Running;
-                break;        
+                break;
             case CLK_256:
                 TCCR1B &= (~(1u <<CS12)) & (~(1u <<CS11)) & (~(1u <<CS10));
 				TCCR1B |=(1<<CS12);
@@ -732,7 +463,7 @@ STD_Fun_t TIMER_Init(uint8 TimerSpecs)
 				PWM_Array[TimerSpecs].STATE = Running;
                 break;
             default:
-				StateVar = NOK;
+				StateVar = PWM_NOK;
                 break;
             }
         }
@@ -745,91 +476,6 @@ STD_Fun_t TIMER_Init(uint8 TimerSpecs)
         {
            switch(PWM_Array[TimerSpecs].MODE)
             {
-        /************************************************************************/
-		      /*                    NORMAL MODE						  */
-		/************************************************************************/
-                case Normal:
-                TCCR2 &= ~(1u<<WGM20);
-                TCCR2 &= ~(1u<<WGM21);
-                // check the interrupt
-                switch (PWM_Array[TimerSpecs].INTERRUPT){
-                    case Enable:
-                        // enable interrupt overflow for timer 0 normal mode
-                        TIMSK |= (1u<<TOIE2);
-                        SREG |= (1u << 7);
-                    break;
-                    case Disable:
-                        TIMSK &= ~(1u<<TOIE2);
-                    break;
-                    default:
-                    StateVar = NOK;
-                    break;
-                }
-                // compare reg value 
-                OCR2 = PWM_Array[TimerSpecs].COMP_REG;
-                // check the pin 
-                switch(PWM_Array[TimerSpecs].COMP_PIN){
-                    case Set:
-                    TCCR2 |= (1u << COM20);
-                    TCCR2 |= (1u << COM21);
-                    DDRD |= (1u << OC2);
-                    break;
-                    case Clear:
-                    TCCR2 &= ~(1u << COM20);
-                    TCCR2 |= (1u << COM21);        
-                    break;
-                    case Toggle:
-                    TCCR2 |= (1u << COM20);
-                    TCCR2 &= ~(1u << COM21);
-                    DDRD |= (1u << OC2);  
-                    break;
-                    default:
-                    TCCR2 &= ~(1u << COM20);
-                    TCCR2 &= ~(1u << COM21);  
-                    break;
-                } 
-                break;
-        /************************************************************************/
-		        /*                    CTC					  */
-		/************************************************************************/
-                case CTC:
-                TCCR2 &= ~(1u<<WGM20);
-                TCCR2 |= (1u<<WGM21);
-                switch (PWM_Array[TimerSpecs].INTERRUPT){
-                    case Enable:
-                        // enable interrupt overflow for timer 0 normal mode
-                        TIMSK |= (1u<<OCIE2);
-                        SREG |= (1u << 7);
-                    break;
-                    case Disable:
-                        TIMSK &= ~(1u<<OCIE2);
-                    break;
-                    default:
-                    StateVar = NOK;
-                    break;
-                }
-                switch(PWM_Array[TimerSpecs].COMP_PIN){
-                    case Set:
-                    TCCR2 |= (1u << COM20);
-                    TCCR2 |= (1u << COM21);
-                    DDRD |= (1u << OC2);
-                    break;
-                    case Clear:
-                    TCCR2 &= ~(1u << COM20);
-                    TCCR2 |= (1u << COM21);        
-                    break;
-                    case Toggle:
-                    TCCR2 |= (1u << COM20);
-                    TCCR2 &= ~(1u << COM21);
-                    DDRD |= (1u << OC2);  
-                    break;
-                    default:
-                    TCCR2 &= ~(1u << COM20);
-                    TCCR2 &= ~(1u << COM21);  
-                    break;
-                } 
-                OCR2 = PWM_Array[TimerSpecs].COMP_REG;
-                break;
         /************************************************************************/
 		        /*                    FAST PWM					  */
 		/************************************************************************/
@@ -878,7 +524,7 @@ STD_Fun_t TIMER_Init(uint8 TimerSpecs)
 					break;
 
                 default:
-                    StateVar = NOK;
+                    StateVar = PWM_NOK;
                     break;
             }
             switch (PWM_Array[TimerSpecs].PRESCALER)
@@ -903,13 +549,13 @@ STD_Fun_t TIMER_Init(uint8 TimerSpecs)
                 TCCR2 |=(1<<CS20) | (1<<CS21);
                 PWM_Array[TimerSpecs].STATE = Running;
                 break;
-				
+
 			case CLK_64:
 				 TCCR2 &= (~(1<<CS20)) & (~(1<<CS21)) & (~(1<<CS22));
 				 TCCR2 |=(1<<CS22);
                 PWM_Array[TimerSpecs].STATE = Running;
 				 break;
-            
+
             case CLK_256:
                 TCCR2 &= (~(1<<CS20)) & (~(1<<CS21)) & (~(1<<CS22));
                 TCCR2 |=(1<<CS22) | (1<<CS21);
@@ -921,28 +567,28 @@ STD_Fun_t TIMER_Init(uint8 TimerSpecs)
                 PWM_Array[TimerSpecs].STATE = Running;
                 break;
             default:
-            StateVar = NOK;
+            StateVar = PWM_NOK;
                 break;
             }
         }
 
-        else 
+        else
         {
             // wrong info
-            StateVar = NOK;
+            StateVar = PWM_NOK;
         }
     }
-    else 
+    else
     {
-        StateVar = NOK;
+        StateVar = PWM_NOK;
     }
     return StateVar;
 }
 
-STD_Fun_t TIMER_Start (uint8 TimerName, uint8 Prescaler_Conf)
+EnumPWMStatus_t PWM_Start (uint8 TimerName, uint8 Prescaler_Conf)
 {
     uint8 LoopIndex ;
-    STD_Fun_t StateVar = OK;
+    EnumPWMStatus_t StateVar = PWM_OK;
     for(LoopIndex=0; LoopIndex<NUM_PWM_STATES; LoopIndex++)
     {
         if (PWM_Array[LoopIndex].TIMER == TimerName)
@@ -967,7 +613,7 @@ STD_Fun_t TIMER_Start (uint8 TimerName, uint8 Prescaler_Conf)
                         TCCR0 &= (~(1<<CS00)) & (~(1<<CS01)) & (~(1<<CS02));
                         TCCR0 |=(1<<CS00) | (1<<CS01);
                         PWM_Array[LoopIndex].STATE = Running;
-                        break;       
+                        break;
                         case CLK_256:
                         TCCR0 &= (~(1<<CS00)) & (~(1<<CS01)) & (~(1<<CS02));
                         TCCR0 |=(1<<CS02);
@@ -979,7 +625,7 @@ STD_Fun_t TIMER_Start (uint8 TimerName, uint8 Prescaler_Conf)
                         PWM_Array[LoopIndex].STATE = Running;
                         break;
                         default:
-                        StateVar = NOK;
+                        StateVar = PWM_NOK;
                         break;
                     }
                 }
@@ -991,7 +637,7 @@ STD_Fun_t TIMER_Start (uint8 TimerName, uint8 Prescaler_Conf)
                             TCCR1B &= (~(1u <<CS12)) & (~(1u <<CS11)) & (~(1u <<CS10));
                             TCCR1B |= (1u << CS10);
                             PWM_Array[LoopIndex].STATE = Running;
-                            break;        
+                            break;
                         case CLK_8:
                             TCCR1B &= (~(1u <<CS12)) & (~(1u <<CS11)) & (~(1u <<CS10));
                             TCCR1B |= (1u << CS11);
@@ -1001,7 +647,7 @@ STD_Fun_t TIMER_Start (uint8 TimerName, uint8 Prescaler_Conf)
                             TCCR1B &= (~(1u <<CS12)) & (~(1u <<CS11)) & (~(1u <<CS10));
                             TCCR1B |=(1u << CS10) | (1u << CS11);
                             PWM_Array[LoopIndex].STATE = Running;
-                            break;        
+                            break;
                         case CLK_256:
                             TCCR1B &= (~(1u <<CS12)) & (~(1u <<CS11)) & (~(1u <<CS10));
                             TCCR1B |=(1<<CS12);
@@ -1013,7 +659,7 @@ STD_Fun_t TIMER_Start (uint8 TimerName, uint8 Prescaler_Conf)
                             PWM_Array[LoopIndex].STATE = Running;
                             break;
                         default:
-                            StateVar = NOK;
+                            StateVar = PWM_NOK;
                             break;
                         }
                 }
@@ -1035,7 +681,7 @@ STD_Fun_t TIMER_Start (uint8 TimerName, uint8 Prescaler_Conf)
                         TCCR2 &= (~(1<<CS20)) & (~(1<<CS21)) & (~(1<<CS22));
                         TCCR2 |=(1<<CS20) | (1<<CS21);
                         PWM_Array[LoopIndex].STATE = Running;
-                        break;                    
+                        break;
                         case CLK_64:
                         TCCR2 &= (~(1<<CS20)) & (~(1<<CS21)) & (~(1<<CS22));
                         TCCR2 |=(1<<CS22);
@@ -1052,24 +698,24 @@ STD_Fun_t TIMER_Start (uint8 TimerName, uint8 Prescaler_Conf)
                         PWM_Array[LoopIndex].STATE = Running;
                         break;
                         default:
-                        StateVar = NOK;
+                        StateVar = PWM_NOK;
                         break;
                     }
                 }
             }
-            else 
+            else
             {
-                StateVar = NOK;
+                StateVar = PWM_NOK;
             }
         }
     }
     return StateVar;
 }
 
-STD_Fun_t TIMER_Stop (uint8 TimerName)
+EnumPWMStatus_t PWM_Stop (uint8 TimerName)
 {
     uint8 LoopIndex ;
-    STD_Fun_t StateVar = OK;
+    EnumPWMStatus_t StateVar = PWM_OK;
     for(LoopIndex=0; LoopIndex<NUM_PWM_STATES; LoopIndex++)
     {
         if (PWM_Array[LoopIndex].TIMER == TimerName)
@@ -1092,78 +738,77 @@ STD_Fun_t TIMER_Stop (uint8 TimerName)
                 PWM_Array[LoopIndex].STATE = Not_Running;
                 }
             }
-            else 
+            else
             {
-                StateVar = NOK;
+                StateVar = PWM_NOK;
             }
         }
     }
     return StateVar;
 }
 
-
-void TIMER0_SetOV(void (*Ptr_ISR) (void))
+EnumPWMStatus_t PWM_ChangeDutyCycle (EnumPWMState_t TimerNumber, uint8 DutyCyclePercentage)
 {
-	Ptr_Timer0_OV = Ptr_ISR;
+	EnumPWMStatus_t StateVar = PWM_OK;
+	uint16 CompReg = 0;
+	float CompReg2 = 0;
+	uint8 Local_Iterator;
+	for (Local_Iterator = 0; Local_Iterator<NUM_PWM_STATES; Local_Iterator++)
+	{
+		if (TimerNumber == PWM_Array[Local_Iterator].TIMER)
+		{
+			// check if it is running or not
+			if (PWM_Array[Local_Iterator].STATE != Running)
+			{
+				// return error
+				StateVar = PWM_NotRunning;
+				break;
+			}
+			else
+			{
+				// change duty cycle
+				switch(PWM_Array[Local_Iterator].TIMER)
+				{
+					case TIMER_0:
+						// change the comp reg to a certain number
+						CompReg2 = (DutyCyclePercentage * 0.01);
+						OCR0 = (uint8)((CompReg2 * 256));
+						break;
+					case TIMER_1:
+						// conf for one mode only when top = 0x3ff
+						CompReg = ((DutyCyclePercentage/100) * 1024);
+
+						switch(PWM_Array[Local_Iterator].CHANNAL)
+						{
+						case Channel_A:
+		                    OCR1AH = (uint8) (CompReg >> 8);
+		                    OCR1AL = (uint8) (CompReg);
+							break;
+						case Channel_B:
+							OCR1BH = (uint8) (CompReg >> 8);
+							OCR1BL = (uint8) (CompReg);
+							break;
+						default:
+							StateVar = PWM_NOK;
+							break;
+						}
+						break;
+					case TIMER_2:
+						CompReg2 = (DutyCyclePercentage * 0.01);
+						OCR2 = (uint8)((CompReg2 * 256));
+						break;
+					default:
+						break;
+				}
+			}
+		}
+		else
+		{
+			StateVar = PWM_NOK;
+		}
+	}
+
+	return StateVar;
 }
 
-void TIMER0_SetCM(void (*Ptr_ISR) (void))
-{
-	Ptr_Timer0_CM = Ptr_ISR;
-}
 
-void TIMER2_SetOV(void (*Ptr_ISR) (void))
-{
-	Ptr_Timer2_OV = Ptr_ISR;
-}
-
-void TIMER2_SetCM(void (*Ptr_ISR) (void))
-{
-	Ptr_Timer2_CM = Ptr_ISR;
-}
-
-void TIMER1_SetOV(void (*Ptr_ISR) (void))
-{
-	Ptr_Timer1_OV = Ptr_ISR;
-}
-
-void TIMER1_SetCM(void (*Ptr_ISR) (void))
-{
-	Ptr_Timer1_CM = Ptr_ISR;
-}
-
-
-ISR(TIMER0_OV)
-{
-	Ptr_Timer0_OV();
-}
-
-ISR(TIMER0_COMP)
-{
-	Ptr_Timer0_CM();
-}
-
-ISR(TIMER2_OV)
-{
-	Ptr_Timer2_OV();
-}
-
-ISR(TIMER2_COMP)
-{
-	Ptr_Timer2_CM();
-}
-
-ISR(TIMER1_OV)
-{
-	Ptr_Timer1_OV();
-}
-
-ISR(TIMER1_COMPA)
-{
-	Ptr_Timer1_CM();
-}
-
-ISR(TIMER1_COMPB)
-{
-	Ptr_Timer1_CM();
-}
